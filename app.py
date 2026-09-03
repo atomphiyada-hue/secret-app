@@ -1,33 +1,34 @@
 import os
-from dotenv import load_dotenv
-from dash import Dash, dcc, html, Input, Output, State
-
-# โหลดค่าจากไฟล์ .env
-load_dotenv()
-APP_PASSWORD = os.getenv("APP_PASSWORD")
-SECRET_MESSAGE = os.getenv("SECRET_MESSAGE")
+import random
+from dash import Dash, html, dcc, Input, Output, State
 
 app = Dash()
 
-# หน้าตาเว็บ: มีช่องกรอกรหัสผ่าน ปุ่มกด และพื้นที่แสดงผล
+# สุ่มตัวเลข 1-100 ไว้
+target_num = random.randint(1, 100)
+
 app.layout = [
-    dcc.Input(id="password", type="password"),
-    html.Button("Submit", id="btn-submit"),
-    html.Div(id="output"),
+    html.H1("🎮 เกมทายตัวเลข (1-100)"),
+    dcc.Input(id="user-guess", type="number", placeholder="พิมพ์ตัวเลขที่นี่..."),
+    html.Button("ทายเลย!", id="btn-guess"),
+    html.Div(id="game-output", style={"marginTop": "20px", "fontSize": "20px"})
 ]
 
-# ระบบเช็กรหัสผ่าน
 @app.callback(
-    Output("output", "children"),
-    Input("btn-submit", "n_clicks"),
-    State("password", "value"),
+    Output("game-output", "children"),
+    Input("btn-guess", "n_clicks"),
+    State("user-guess", "value")
 )
-def check_password(n_clicks, pw):
-    if not n_clicks:
-        return ""
-    if pw == APP_PASSWORD:
-        return SECRET_MESSAGE
-    return "Wrong password"
+def play_game(n_clicks, guess):
+    if not n_clicks or guess is None:
+        return "กรุณาใส่ตัวเลขแล้วกดปุ่มทาย!"
+    
+    if guess == target_num:
+        return "🎉 ถูกต้องแล้วครับ! คุณชนะแล้ว!"
+    elif guess < target_num:
+        return "📉 น้อยเกินไป! ลองทายเลขที่มากกว่านี้"
+    else:
+        return "📈 มากเกินไป! ลองทายเลขที่น้อยกว่านี้"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8050))
