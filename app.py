@@ -1,34 +1,166 @@
 import os
 import random
-from dash import Dash, html, dcc, Input, Output, State
+from dash import Dash, dcc, html, Input, Output, State
 
 app = Dash()
 
-# สุ่มตัวเลข 1-100 ไว้
-target_num = random.randint(1, 100)
-
-app.layout = [
-    html.H1("🎮 เกมทายตัวเลข (1-100)"),
-    dcc.Input(id="user-guess", type="number", placeholder="พิมพ์ตัวเลขที่นี่..."),
-    html.Button("ทายเลย!", id="btn-guess"),
-    html.Div(id="game-output", style={"marginTop": "20px", "fontSize": "20px"})
-]
+app.layout = html.Div(
+    style={"textAlign": "center", "fontFamily": "sans-serif", "marginTop": "20px"},
+    children=[
+        html.H1("🐤 Flappy Bird (Dash Python)"),
+        html.Div(id="score-board", children="Score: 0", style={"fontSize": "24px", "fontWeight": "bold"}),
+        html.Br(),
+        
+        # พื้นที่แสดงผลเกม
+        html.Div(
+            id="game-screen",
+            style={
+                "width": "300px",
+                "height": "400px",
+                "backgroundColor": "#70c5ce",
+                "margin": "0 auto",
+                "position": "relative",
+                "overflow": "hidden",
+                "border": "3px solid #333",
+                "borderRadius": "8px",
+            },
+            children=[
+                # นก
+                html.Div(
+                    id="bird",
+                    style={
+                        "width": "24px",
+                        "height": "24px",
+                        "backgroundColor": "#f4c430",
+                        "borderRadius": "50%",
+                        "position": "absolute",
+                        "left": "50px",
+                    },
+                ),
+                # ท่อบน
+                html.Div(
+                    id="pipe-top",
+                    style={
+                        "width": "50px",
+                        "backgroundColor": "#73bf2e",
+                        "position": "absolute",
+                        "border": "2px solid #222",
+                    },
+                ),
+                # ท่อล่าง
+                html.Div(
+                    id="pipe-bottom",
+                    style={
+                        "width": "50px",
+                        "backgroundColor": "#73bf2e",
+                        "position": "absolute",
+                        "border": "2px solid #222",
+                    },
+                ),
+                # ข้อความ Game Over
+                html.Div(
+                    id="game-over-msg",
+                    style={
+                        "color": "white",
+                        "fontSize": "22px",
+                        "fontWeight": "bold",
+                        "marginTop": "150px",
+                        "display": "none",
+                        "textShadow": "2px 2px #000",
+                    },
+                ),
+            ],
+        ),
+        html.Br(),
+        html.Button("🚀 กระโดด / เริ่มใหม่", id="btn-jump", n_clicks=0, style={"padding": "12px 24px", "fontSize": "18px", "cursor": "pointer"}),
+        
+        # ตัวจับเวลาให้เกมขยับทุกๆ 0.1 วินาที
+        dcc.Interval(id="game-timer", interval=100, n_clicks=0),
+        
+        # เก็บสถานะเกม
+        dcc.Store(id="game-store", data={"bird_y": 150, "velocity": 0, "pipe_x": 300, "pipe_gap_y": 150, "score": 0, "game_over": False}),
+    ],
+)
 
 @app.callback(
-    Output("game-output", "children"),
-    Input("btn-guess", "n_clicks"),
-    State("user-guess", "value")
+    [
+        Output("game-store", "data"),
+        Output("bird", "style"),
+        Output("pipe-top", "style"),
+        Output("pipe-bottom", "style"),
+        Output("score-board", "children"),
+        Output("game-over-msg", "style"),
+        Output("game-over-msg", "children"),
+    ],
+    [Input("game-timer", "n_intervals"), Input("btn-jump", "n_clicks")],
+    [State("game-store", "data")],
 )
-def play_game(n_clicks, guess):
-    if not n_clicks or guess is None:
-        return "กรุณาใส่ตัวเลขแล้วกดปุ่มทาย!"
-    
-    if guess == target_num:
-        return "🎉 ถูกต้องแล้วครับ! คุณชนะแล้ว!"
-    elif guess < target_num:
-        return "📉 น้อยเกินไป! ลองทายเลขที่มากกว่านี้"
-    else:
-        return "📈 มากเกินไป! ลองทายเลขที่น้อยกว่านี้"
+def update_game(n_intervals, jump_clicks, data):
+    # ตรวจสอบการกดปุ่มกระโดด
+    from dash import callback_context
+    triggered = [t["prop_id"] for t in callback_context.triggered]
+
+    if data["game_over"]:
+        if "btn-jump.n_clicks" in triggered:
+            data = {"bird_y": 150, "velocity": -6, "pipe_x": 300, "pipe_gap_y": 150, "score": 0, "game_over": False}
+        else:
+            msg_style = {"color": "red", "fontSize": "22px", "fontWeight": "bold", "marginTop": "150px", "display": "block"}
+            return data, {}, {}, {}, f"Score: {data['score']}", msg_style, "GAME OVER! กดปุ่มเพื่อเล่นใหม่"
+
+    if "btn-jump.n_clicks" in triggered:
+        data["velocity"] = -8
+
+    # ฟิสิกส์นก
+    data["velocity"] += 1.8
+    data["bird_y"] += data["velocity"]
+
+    # เคลื่อนท่อ
+    data["pipe_x"] -= 12
+    if data["pipe_x"] < -50:
+        data["pipe_x"] = 300
+        data["pipe_gap_y"] = random.randint(80, 220)
+        data["score"] += 1
+
+    # ตรวจจับการชน
+    gap_height = 110
+    if (
+        data["bird_y"] <= 0
+        or data["bird_y"] >= 376
+        or (data["pipe_x"] <= 74 and data["pipe_x"] + 50 >= 50 and (data["bird_y"] < data["pipe_gap_y"] or data["bird_y"] + 24 > data["pipe_gap_y"] + gap_height))
+    ):
+        data["game_over"] = True
+
+    # Style นก
+    bird_style = {
+        "width": "24px",
+        "height": "24px",
+        "backgroundColor": "#f4c430",
+        "borderRadius": "50%",
+        "position": "absolute",
+        "left": "50px",
+        "top": f"{data['bird_y']}px",
+    }
+
+    # Style ท่อ
+    pipe_top_style = {
+        "width": "50px",
+        "height": f"{data['pipe_gap_y']}px",
+        "backgroundColor": "#73bf2e",
+        "position": "absolute",
+        "left": f"{data['pipe_x']}px",
+        "top": "0px",
+    }
+    pipe_bottom_style = {
+        "width": "50px",
+        "height": f"{400 - data['pipe_gap_y'] - gap_height}px",
+        "backgroundColor": "#73bf2e",
+        "position": "absolute",
+        "left": f"{data['pipe_x']}px",
+        "bottom": "0px",
+    }
+
+    msg_style = {"display": "none"}
+    return data, bird_style, pipe_top_style, pipe_bottom_style, f"Score: {data['score']}", msg_style, ""
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8050))
