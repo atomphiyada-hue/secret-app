@@ -1,6 +1,6 @@
 import os
 import random
-from dash import Dash, dcc, html, Input, Output, State
+from dash import Dash, dcc, html, Input, Output, State, ctx
 
 app = Dash()
 
@@ -11,7 +11,6 @@ app.layout = html.Div(
         html.Div(id="score-board", children="Score: 0", style={"fontSize": "24px", "fontWeight": "bold"}),
         html.Br(),
         
-        # พื้นที่แสดงผลเกม
         html.Div(
             id="game-screen",
             style={
@@ -25,7 +24,6 @@ app.layout = html.Div(
                 "borderRadius": "8px",
             },
             children=[
-                # นก
                 html.Div(
                     id="bird",
                     style={
@@ -37,7 +35,6 @@ app.layout = html.Div(
                         "left": "50px",
                     },
                 ),
-                # ท่อบน
                 html.Div(
                     id="pipe-top",
                     style={
@@ -47,7 +44,6 @@ app.layout = html.Div(
                         "border": "2px solid #222",
                     },
                 ),
-                # ท่อล่าง
                 html.Div(
                     id="pipe-bottom",
                     style={
@@ -57,7 +53,6 @@ app.layout = html.Div(
                         "border": "2px solid #222",
                     },
                 ),
-                # ข้อความ Game Over
                 html.Div(
                     id="game-over-msg",
                     style={
@@ -74,10 +69,7 @@ app.layout = html.Div(
         html.Br(),
         html.Button("🚀 กระโดด / เริ่มใหม่", id="btn-jump", n_clicks=0, style={"padding": "12px 24px", "fontSize": "18px", "cursor": "pointer"}),
         
-        # ตัวจับเวลาให้เกมขยับทุกๆ 0.1 วินาที
-        dcc.Interval(id="game-timer", interval=100, n_clicks=0),
-        
-        # เก็บสถานะเกม
+        dcc.Interval(id="game-timer", interval=150, n_clicks=0),
         dcc.Store(id="game-store", data={"bird_y": 150, "velocity": 0, "pipe_x": 300, "pipe_gap_y": 150, "score": 0, "game_over": False}),
     ],
 )
@@ -96,32 +88,27 @@ app.layout = html.Div(
     [State("game-store", "data")],
 )
 def update_game(n_intervals, jump_clicks, data):
-    # ตรวจสอบการกดปุ่มกระโดด
-    from dash import callback_context
-    triggered = [t["prop_id"] for t in callback_context.triggered]
+    triggered_id = ctx.triggered_id
 
     if data["game_over"]:
-        if "btn-jump.n_clicks" in triggered:
+        if triggered_id == "btn-jump":
             data = {"bird_y": 150, "velocity": -6, "pipe_x": 300, "pipe_gap_y": 150, "score": 0, "game_over": False}
         else:
             msg_style = {"color": "red", "fontSize": "22px", "fontWeight": "bold", "marginTop": "150px", "display": "block"}
             return data, {}, {}, {}, f"Score: {data['score']}", msg_style, "GAME OVER! กดปุ่มเพื่อเล่นใหม่"
 
-    if "btn-jump.n_clicks" in triggered:
+    if triggered_id == "btn-jump":
         data["velocity"] = -8
 
-    # ฟิสิกส์นก
     data["velocity"] += 1.8
     data["bird_y"] += data["velocity"]
 
-    # เคลื่อนท่อ
     data["pipe_x"] -= 12
     if data["pipe_x"] < -50:
         data["pipe_x"] = 300
         data["pipe_gap_y"] = random.randint(80, 220)
         data["score"] += 1
 
-    # ตรวจจับการชน
     gap_height = 110
     if (
         data["bird_y"] <= 0
@@ -130,7 +117,6 @@ def update_game(n_intervals, jump_clicks, data):
     ):
         data["game_over"] = True
 
-    # Style นก
     bird_style = {
         "width": "24px",
         "height": "24px",
@@ -141,7 +127,6 @@ def update_game(n_intervals, jump_clicks, data):
         "top": f"{data['bird_y']}px",
     }
 
-    # Style ท่อ
     pipe_top_style = {
         "width": "50px",
         "height": f"{data['pipe_gap_y']}px",
