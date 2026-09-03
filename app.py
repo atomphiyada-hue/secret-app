@@ -69,7 +69,7 @@ app.layout = html.Div(
         html.Br(),
         html.Button("🚀 กระโดด / เริ่มใหม่", id="btn-jump", n_clicks=0, style={"padding": "12px 24px", "fontSize": "18px", "cursor": "pointer"}),
         
-        dcc.Interval(id="game-timer", interval=150, n_clicks=0),
+        dcc.Interval(id="game-timer", interval=150),
         dcc.Store(id="game-store", data={"bird_y": 150, "velocity": 0, "pipe_x": 300, "pipe_gap_y": 150, "score": 0, "game_over": False}),
     ],
 )
