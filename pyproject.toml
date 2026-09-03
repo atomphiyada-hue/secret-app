@@ -1,0 +1,19 @@
+[project]
+name = "secret-app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = 'ATOMMY_GOHOME\phiya', email = "atomphiyada@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "dash>=4.4.1",
+]
+
+[project.scripts]
+secret-app = "secret_app:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
